@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logic Gate Simulator</title>
+<link href="https://cdn.jsdelivr.net/fontsource/css/inter@latest/index.css" rel="stylesheet">
+<style>
+:root{--bg:#0b1220;--panel:#111a2b;--panel2:#0d1524;--line:#26324a;--txt:#e2e8f0;--mut:#8493ad;--acc:#4f8cff;--hi:#22c55e;--lo:#64748b;--err:#ef4444;--warn:#f59e0b}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--txt);overflow:hidden;font-size:13px}
+.app{display:grid;grid-template-columns:184px 1fr 360px;grid-template-rows:52px 1fr;height:100%}
+.header{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 16px}
+.header h1{font-size:15px;font-weight:700;margin-right:auto;white-space:nowrap}
+.btn{border:1px solid var(--line);background:#1a2540;color:var(--txt);border-radius:7px;padding:6px 11px;font:600 12px Inter,sans-serif;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#243356}.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}.btn.pri:hover{background:#3b78ee}
+.sidebar{background:var(--panel);border-right:1px solid var(--line);padding:12px;overflow-y:auto}
+.sidebar h3{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin:12px 0 6px}
+.sidebar h3:first-child{margin-top:0}
+.ci{display:flex;align-items:center;gap:8px;width:100%;padding:7px 9px;margin-bottom:4px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:7px;color:var(--txt);font:600 12px Inter,sans-serif;cursor:pointer}
+.ci:hover{background:#17223a;border-color:var(--c)}
+.help{font-size:11px;color:var(--mut);line-height:1.6;margin-top:14px}
+#cv{position:relative;overflow:hidden;touch-action:none;background-color:var(--bg);background-image:radial-gradient(#1b2740 1px,transparent 1px);background-size:22px 22px}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+#svg{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+.w{fill:none;stroke-width:2.2}.w.h{stroke:var(--hi)}.w.l{stroke:var(--lo)}.w.u{stroke:var(--warn);stroke-dasharray:5 4}
+.hit{fill:none;stroke:transparent;stroke-width:14;pointer-events:stroke;cursor:pointer}
+g:hover>.w{stroke:var(--err)}
+#tmp{fill:none;stroke:var(--acc);stroke-width:2;stroke-dasharray:5 4}
+.toolbar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px;z-index:5}
+.node{position:absolute;min-width:120px;background:var(--panel);border:1.5px solid var(--line);border-radius:9px;box-shadow:0 3px 10px #0006;user-select:none;touch-action:none;cursor:grab}
+.node.sel{border-color:var(--acc);box-shadow:0 0 0 3px #4f8cff33}
+.nh{display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid var(--line);border-top:3px solid var(--c);border-radius:8px 8px 0 0}
+.nh b{font-size:10px;color:var(--c);letter-spacing:.5px}
+.nh span{font-size:11px;font-weight:600;margin-left:auto}
+.nh input{width:48px;margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:4px;color:var(--txt);text-align:center;font:600 12px ui-monospace,monospace;padding:1px 3px}
+.nh input:focus{outline:none;border-color:var(--acc)}
+.x{font-style:normal;color:var(--mut);cursor:pointer;opacity:0;font-size:14px;line-height:1;padding:0 2px}
+.node:hover .x,.node.sel .x{opacity:1}.x:hover{color:var(--err)}
+.nb{display:flex;justify-content:space-between;align-items:center;padding:6px 0;gap:6px}
+.port{position:relative;display:flex;align-items:center;gap:5px;padding:5px 14px;font:600 10px ui-monospace,monospace;color:var(--mut)}
+.port.out{justify-content:flex-end;cursor:crosshair}
+.dot{position:absolute;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;border:2px solid var(--lo);background:var(--bg);transition:transform .15s}
+.port.in .dot{left:-7px}.port.out .dot{right:-7px}
+.port:hover .dot{transform:scale(1.35)}
+.port.h .dot{background:var(--hi);border-color:var(--hi)}.port.l .dot{background:var(--lo)}.port.u .dot{border-color:var(--warn)}
+.port.out.h .pv{color:var(--hi)}
+.tg,.lamp{width:32px;height:26px;border-radius:6px;font:700 14px ui-monospace,monospace;border:1px solid var(--line);background:var(--panel2);color:var(--lo);display:grid;place-items:center}
+.tg{cursor:pointer}.tg.on,.lamp.h{background:var(--hi);border-color:var(--hi);color:#052e16}.lamp.l{color:var(--lo)}
+.result{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.rh{display:flex;align-items:center;gap:6px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.rh h3{font-size:13px;margin-right:auto}
+#res{flex:1;overflow:auto;padding:14px}
+.empty{height:100%;display:grid;place-content:center;text-align:center;color:var(--mut);line-height:1.7;padding:20px}
+.expr{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:8px;font:13px ui-monospace,monospace;color:#a5b4fc;word-break:break-word}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px;text-align:center}
+.stat b{display:block;font-size:17px;color:var(--acc)}.stat span{font-size:9px;color:var(--mut);text-transform:uppercase}
+table{width:100%;border-collapse:collapse;font:12px ui-monospace,monospace}
+th{background:#1a2540;padding:6px 8px;position:sticky;top:0;font-weight:600}
+th.o{background:#1e3a8a}th.g{color:var(--mut)}
+td{padding:5px 8px;text-align:center;border-bottom:1px solid var(--line)}
+tr:nth-child(even) td{background:var(--panel2)}
+td.one{color:var(--hi);font-weight:700}td.zero{color:#f87171;font-weight:700}
+.errs{background:#7f1d1d33;border:1px solid #7f1d1d;border-radius:8px;padding:10px 12px;color:#fca5a5;line-height:1.6}
+.errs ul{margin:6px 0 0 18px}
+#toasts{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:50;display:flex;flex-direction:column;gap:6px;align-items:center}
+.toast{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--hi);padding:8px 14px;border-radius:8px;box-shadow:0 6px 18px #0008;font-size:12px}
+.toast.err{border-left-color:var(--err)}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#2b3a58;border-radius:4px}::-webkit-scrollbar-track{background:transparent}
+@media(max-width:900px){
+.app{grid-template-columns:1fr;grid-template-rows:52px auto minmax(280px,1fr) 42vh}
+.sidebar{display:flex;gap:6px;overflow-x:auto;padding:8px;border-right:0;border-bottom:1px solid var(--line)}
+.sidebar h3,.help{display:none}.ci{width:auto;margin:0}
+.result{border-left:0;border-top:1px solid var(--line)}
+.header h1{font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Logic Gate Simulator</h1>
+    <button class="btn" onclick="demo()">Demo</button>
+    <button class="btn" onclick="arrange()">Auto Arrange</button>
+    <button class="btn" onclick="clearAll()">Clear</button>
+    <button class="btn pri" onclick="generate()">Generate Table</button>
+  </div>
+  <div class="sidebar">
+    <div id="lib"></div>
+    <div class="help">Klik komponen untuk menambah. Seret dari titik <b>output</b> ke titik <b>input</b> untuk menghubungkan. Klik kabel untuk menghapus. Klik tombol 0/1 pada INPUT untuk mengubah nilai. <b>Del</b> menghapus node terpilih.</div>
+  </div>
+  <div id="cv">
+    <div id="world"><svg id="svg"></svg></div>
+    <div class="toolbar">
+      <button class="btn" onclick="zoom(-.1)">−</button>
+      <button class="btn" onclick="zoom(.1)">+</button>
+      <button class="btn" onclick="resetView()">Reset View</button>
+    </div>
+  </div>
+  <div class="result">
+    <div class="rh"><h3>Hasil</h3>
+      <button class="btn" onclick="copyTable()">Copy</button>
+      <button class="btn" onclick="exportCSV()">CSV</button>
+    </div>
+    <div id="res"></div>
+  </div>
+</div>
+<div id="toasts"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), world = $('#world'), svg = $('#svg'), res = $('#res');
+const CFG = {INPUT:[0,'#10b981'],AND:[2,'#3b82f6'],OR:[2,'#f97316'],NOT:[1,'#a855f7'],NAND:[2,'#06b6d4'],NOR:[2,'#eab308'],XOR:[2,'#ec4899'],XNOR:[2,'#84cc16'],OUTPUT:[1,'#ef4444']};
+const FN = {AND:v=>v.every(x=>x),OR:v=>v.some(x=>x),NOT:v=>!v[0],NAND:v=>!v.every(x=>x),NOR:v=>!v.some(x=>x),XOR:v=>v.reduce((a,b)=>a^b,0),XNOR:v=>!v.reduce((a,b)=>a^b,0)};
+const EMPTY = '<div class="empty"><div>Bangun rangkaian di canvas,<br>lalu klik <b>Generate Table</b><br>untuk melihat tabel kebenaran.</div></div>';
+const sub = k => String(k).replace(/\d/g, d => '₀₁₂₃₄₅₆₇₈₉'[d]);
+const st = v => v == null ? 'u' : v ? 'h' : 'l';
+
+let nodes = [], conns = [], seq = 0, cnt = {}, sel = null, lastV = {}, tbl = null;
+let view = {x:0, y:0, s:1}, drag = null, pan = null, link = null;
+
+const byId = id => nodes.find(n => n.id === id);
+const ins = n => Array.from({length: CFG[n.type][0]}, (_, i) => conns.find(c => c.to === n.id && c.port === i) || null);
+
+// ---------- toast ----------
+function toast(m, t = 'ok') {
+  const d = document.createElement('div');
+  d.className = 'toast ' + t; d.textContent = m;
+  $('#toasts').appendChild(d);
+  setTimeout(() => d.remove(), 3200);
+}
+
+// ---------- sidebar ----------
+$('#lib').innerHTML = [['Input',['INPUT']],['Gerbang',['AND','OR','NOT','NAND','NOR','XOR','XNOR']],['Output',['OUTPUT']]]
+  .map(([h, l]) => `<h3>${h}</h3>` + l.map(t => `<button class="ci" style="--c:${CFG[t][1]}" data-t="${t}">${t}</button>`).join('')).join('');
+$('#lib').onclick = e => { const b = e.target.closest('.ci'); if (b) addNode(b.dataset.t); };
+
+// ---------- view ----------
+function applyView() { world.style.transform = `translate(${view.x}px,${view.y}px) scale(${view.s})`; }
+function zoom(d) { view.s = Math.min(2, Math.max(.4, +(view.s + d).toFixed(2))); applyView(); }
+function resetView() { view = {x:0, y:0, s:1}; applyView(); }
+function toWorld(cx, cy) { const b = cv.getBoundingClientRect(); return {x:(cx - b.left - view.x) / view.s, y:(cy - b.top - view.y) / view.s}; }
+
+// ---------- nodes ----------
+function addNode(type, x, y) {
+  const id = seq++;
+  cnt[type] = (cnt[type] || 0) + 1;
+  let name;
+  if (type === 'INPUT') { let i = 0; while (nodes.some(n => n.type === 'INPUT' && n.name === String.fromCharCode(65 + i))) i++; name = String.fromCharCode(65 + i); }
+  else name = (type === 'OUTPUT' ? 'OUT' : type) + sub(cnt[type]);
+  const n = {id, type, name, value:0,
+    x: x ?? (70 - view.x) / view.s + (nodes.length % 5) * 26,
+    y: y ?? (60 - view.y) / view.s + (nodes.length % 6) * 62};
+  nodes.push(n); mount(n); select(id); refresh();
+  return n;
+}
+
+function mount(n) {
+  const [k, c] = CFG[n.type];
+  const el = document.createElement('div');
+  el.className = 'node'; el.id = 'n' + n.id; el.dataset.id = n.id;
+  el.style.cssText = `left:${n.x}px;top:${n.y}px;--c:${c}`;
+  let pi = '';
+  for (let i = 0; i < k; i++) pi += `<div class="port in u" data-p="${i}"><i class="dot"></i><span>${k === 1 ? 'IN' : 'AB'[i]}</span></div>`;
+  const mid = n.type === 'INPUT' ? '<button class="tg" title="Ubah 0/1">0</button>' : n.type === 'OUTPUT' ? '<div class="lamp">–</div>' : '';
+  const po = n.type === 'OUTPUT' ? '' : '<div class="port out u"><span class="pv"></span><i class="dot"></i></div>';
+  el.innerHTML = `<div class="nh"><b>${n.type}</b>${n.type === 'INPUT' ? `<input value="${n.name}" maxlength="6">` : `<span>${n.name}</span>`}<i class="x">×</i></div><div class="nb"><div>${pi}</div>${mid}<div>${po}</div></div>`;
+  world.appendChild(el);
+  el.querySelector('.x').onclick = () => del(n.id);
+  const tg = el.querySelector('.tg'); if (tg) tg.onclick = () => { n.value ^= 1; sim(); };
+  const inp = el.querySelector('input');
+  if (inp) inp.onchange = () => {
+    const v = inp.value.trim().toUpperCase().replace(/\s/g, '');
+    if (!v || nodes.some(o => o !== n && o.type === 'INPUT' && o.name === v)) { inp.value = n.name; return toast('Nama input harus unik dan tidak kosong', 'err'); }
+    n.name = v; inp.value = v;
+  };
+}
+
+function del(id) {
+  nodes = nodes.filter(n => n.id !== id);
+  conns = conns.filter(c => c.from !== id && c.to !== id);
+  $('#n' + id)?.remove();
+  if (sel === id) sel = null;
+  refresh();
+}
+
+function select(id) {
+  sel = id;
+  document.querySelectorAll('.node').forEach(e => e.classList.toggle('sel', +e.dataset.id === id));
+}
+
+function clearAll() {
+  nodes = []; conns = []; seq = 0; cnt = {}; sel = null; tbl = null; lastV = {};
+  world.querySelectorAll('.node').forEach(e => e.remove());
+  svg.innerHTML = ''; res.innerHTML = EMPTY; resetView();
+}
+
+// ---------- connections ----------
+const dep = (a, b, seen = {}) => a === b || (!seen[a] && (seen[a] = 1, ins(byId(a)).some(c => c && dep(c.from, b, seen))));
+
+function connect(from, to, p) {
+  if (from === to) return toast('Node tidak bisa dihubungkan ke dirinya sendiri', 'err');
+  if (dep(from, to)) return toast('Koneksi ditolak: membentuk loop', 'err');
+  conns = conns.filter(c => !(c.to === to && c.port === p));
+  conns.push({from, to, port:p});
+  refresh();
+}
+
+function portPos(id, kind, p) {
+  const el = $(`#n${id} .port.${kind}${kind === 'in' ? `[data-p="${p}"]` : ''} .dot`);
+  const r = el.getBoundingClientRect();
+  return toWorld(r.left + r.width / 2, r.top + r.height / 2);
+}
+const curve = (a, b) => { const c = Math.max(40, Math.abs(b.x - a.x) * .5); return `M${a.x},${a.y} C${a.x + c},${a.y} ${b.x - c},${b.y} ${b.x},${b.y}`; };
+
+function drawWires() {
+  svg.innerHTML = conns.map((c, i) => {
+    const d = curve(portPos(c.from, 'out'), portPos(c.to, 'in', c.port));
+    return `<g data-i="${i}"><path class="hit" d="${d}"/><path class="w ${st(lastV[c.from])}" d="${d}"/></g>`;
+  }).join('');
+}
+svg.onclick = e => { const g = e.target.closest('g'); if (g) { conns.splice(+g.dataset.i, 1); refresh(); } };
+
+// ---------- evaluation ----------
+function evalAll(iv) {
+  const v = {}, vis = {}; let loop = false;
+  const get = id => {
+    if (id in v) return v[id];
+    if (vis[id]) { loop = true; return null; }
+    vis[id] = 1;
+    const n = byId(id); let r;
+    if (n.type === 'INPUT') r = iv[id];
+    else { const a = ins(n).map(c => c ? get(c.from) : null); r = a.includes(null) ? null : n.type === 'OUTPUT' ? a[0] : +FN[n.type](a); }
+    vis[id] = 0; return v[id] = r;
+  };
+  nodes.forEach(n => get(n.id));
+  return {v, loop};
+}
+
+function sim() {
+  const iv = {};
+  nodes.forEach(n => n.type === 'INPUT' && (iv[n.id] = n.value));
+  lastV = evalAll(iv).v;
+  nodes.forEach(n => {
+    const el = $('#n' + n.id), v = lastV[n.id];
+    el.querySelectorAll('.port.in').forEach(p => {
+      const c = conns.find(c => c.to === n.id && c.port === +p.dataset.p);
+      p.className = 'port in ' + st(c ? lastV[c.from] : null);
+    });
+    const o = el.querySelector('.port.out');
+    if (o) { o.className = 'port out ' + st(v); o.firstChild.textContent = v == null ? '' : v; }
+    const t = el.querySelector('.tg'); if (t) { t.textContent = n.value; t.classList.toggle('on', !!n.value); }
+    const l = el.querySelector('.lamp'); if (l) { l.textContent = v == null ? '–' : v; l.className = 'lamp ' + st(v); }
+  });
+  drawWires();
+}
+const refresh = sim;
+
+// ---------- interaction ----------
+cv.addEventListener('pointerdown', e => {
+  const out = e.target.closest('.port.out');
+  if (out) { link = {from: +out.closest('.node').dataset.id}; e.preventDefault(); return; }
+  const el = e.target.closest('.node');
+  if (el) {
+    if (e.target.closest('input,button,.x')) return;
+    const n = byId(+el.dataset.id), w = toWorld(e.clientX, e.clientY);
+    select(n.id); drag = {n, dx: w.x - n.x, dy: w.y - n.y}; return;
+  }
+  if (e.target.closest('.toolbar')) return;
+  select(null); pan = {x: e.clientX - view.x, y: e.clientY - view.y};
+});
+document.addEventListener('pointermove', e => {
+  if (link) {
+    let t = $('#tmp'); if (!t) { t = document.createElementNS('http://www.w3.org/2000/svg', 'path'); t.id = 'tmp'; svg.appendChild(t); }
+    t.setAttribute('d', curve(portPos(link.from, 'out'), toWorld(e.clientX, e.clientY)));
+  } else if (drag) {
+    const w = toWorld(e.clientX, e.clientY), n = drag.n;
+    n.x = w.x - drag.dx; n.y = w.y - drag.dy;
+    const el = $('#n' + n.id); el.style.left = n.x + 'px'; el.style.top = n.y + 'px';
+    drawWires();
+  } else if (pan) { view.x = e.clientX - pan.x; view.y = e.clientY - pan.y; applyView(); }
+});
+document.addEventListener('pointerup', e => {
+  if (link) {
+    const t = document.elementFromPoint(e.clientX, e.clientY)?.closest('.port.in');
+    $('#tmp')?.remove();
+    if (t) connect(link.from, +t.closest('.node').dataset.id, +t.dataset.p);
+    link = null;
+  }
+  drag = pan = null;
+});
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Delete' || e.key === 'Backspace') && sel != null && e.target.tagName !== 'INPUT') del(sel);
+});
+window.addEventListener('resize', drawWires);
+
+// ---------- validation / expression ----------
+function validate() {
+  const e = [], I = nodes.filter(n => n.type === 'INPUT'), O = nodes.filter(n => n.type === 'OUTPUT');
+  if (!I.length) e.push('Belum ada INPUT.');
+  if (!O.length) e.push('Belum ada OUTPUT.');
+  if (I.length > 10) e.push('Maksimal 10 input (2^N baris).');
+  O.forEach(o => { if (!ins(o)[0]) e.push(`${o.name} belum terhubung ke rangkaian.`); });
+  nodes.forEach(n => {
+    if (n.type === 'INPUT' || n.type === 'OUTPUT') return;
+    ins(n).forEach((c, i) => { if (!c) e.push(`${n.name}: input ${CFG[n.type][0] === 1 ? 'IN' : 'AB'[i]} belum terhubung.`); });
+  });
+  if (evalAll({}).loop) e.push('Terdapat loop (circular dependency).');
+  return e;
+}
+
+function ex(id) {
+  const n = byId(id);
+  if (n.type === 'INPUT') return n.name;
+  const a = ins(n).map(c => { const s = ex(c.from); return ['AND', 'OR', 'XOR'].includes(byId(c.from).type) ? `(${s})` : s; });
+  const j = o => a.join(o);
+  return {AND:j(' · '), OR:j(' + '), XOR:j(' ⊕ '), NOT:'¬' + a[0], NAND:`¬(${j(' · ')})`, NOR:`¬(${j(' + ')})`, XNOR:`¬(${j(' ⊕ ')})`}[n.type];
+}
+
+// ---------- truth table ----------
+function generate() {
+  const err = validate();
+  if (err.length) {
+    res.innerHTML = `<div class="errs"><b>Rangkaian belum valid</b><ul>${err.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
+    return toast(err[0], 'err');
+  }
+  const I = nodes.filter(n => n.type === 'INPUT'), O = nodes.filter(n => n.type === 'OUTPUT'),
+        G = nodes.filter(n => n.type !== 'INPUT' && n.type !== 'OUTPUT');
+  const head = [...I.map(n => n.name), ...G.map(n => n.name), ...O.map(n => n.name)];
+  const rows = [];
+  for (let i = 0; i < 1 << I.length; i++) {
+    const iv = {};
+    I.forEach((n, k) => iv[n.id] = (i >> (I.length - 1 - k)) & 1);
+    const {v} = evalAll(iv);
+    rows.push([...I.map(n => iv[n.id]), ...G.map(n => v[n.id]), ...O.map(n => v[n.id])]);
+  }
+  tbl = {head, rows};
+  const oi = I.length + G.length, gi = I.length;
+  const ones = rows.filter(r => r.slice(oi).some(x => x === 1)).length;
+  const exprs = O.map(o => `<div class="expr">${O.length > 1 ? o.name : 'F'} = ${ex(ins(o)[0].from)}</div>`).join('');
+  res.innerHTML = `${exprs}
+    <div class="stats"><div class="stat"><b>${I.length}</b><span>Input</span></div><div class="stat"><b>${rows.length}</b><span>Baris</span></div><div class="stat"><b>${G.length}</b><span>Gate</span></div><div class="stat"><b>${ones}</b><span>Out = 1</span></div></div>
+    <table><thead><tr>${head.map((h, i) => `<th class="${i >= oi ? 'o' : i >= gi ? 'g' : ''}">${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r => `<tr>${r.map((x, i) => `<td class="${i >= oi ? (x ? 'one' : 'zero') : ''}">${x}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+function copyTable() {
+  if (!tbl) return toast('Generate tabel terlebih dahulu', 'err');
+  const t = [tbl.head, ...tbl.rows].map(r => r.join('\t')).join('\n');
+  navigator.clipboard.writeText(t).then(() => toast('Tabel disalin ke clipboard'), () => toast('Gagal menyalin', 'err'));
+}
+function exportCSV() {
+  if (!tbl) return toast('Generate tabel terlebih dahulu', 'err');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([[tbl.head, ...tbl.rows].map(r => r.join(',')).join('\n')], {type:'text/csv'}));
+  a.download = 'truth_table.csv'; a.click(); URL.revokeObjectURL(a.href);
+  toast('CSV diekspor');
+}
+
+// ---------- arrange / demo ----------
+function arrange() {
+  if (!nodes.length) return;
+  const d = {}, dp = id => id in d ? d[id] : d[id] = Math.max(-1, ...ins(byId(id)).map(c => c ? dp(c.from) : -1)) + 1;
+  const layer = {};
+  nodes.forEach(n => {
+    const k = dp(n.id), i = layer[k] = (layer[k] ?? -1) + 1;
+    n.x = 40 + k * 230; n.y = 40 + i * 110;
+    const el = $('#n' + n.id); el.style.left = n.x + 'px'; el.style.top = n.y + 'px';
+  });
+  resetView(); drawWires();
+}
+
+function demo() {
+  clearAll();
+  const A = addNode('INPUT', 40, 60), B = addNode('INPUT', 40, 170), C = addNode('INPUT', 40, 280),
+        X = addNode('XOR', 260, 80), N = addNode('AND', 260, 230), O = addNode('OR', 480, 150), T = addNode('OUTPUT', 680, 150);
+  [[A, X, 0], [B, X, 1], [B, N, 0], [C, N, 1], [X, O, 0], [N, O, 1], [O, T, 0]].forEach(([a, b, p]) => conns.push({from:a.id, to:b.id, port:p}));
+  select(null); refresh(); generate();
+}
+
+res.innerHTML = EMPTY;
+demo();
+</script>
+</body>
+</html>
